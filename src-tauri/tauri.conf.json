@@ -8,29 +8,15 @@
   },
   "package": {
     "productName": "webLaunch",
-    "version": "0.0.0"
+    "version": "0.1.0"
   },
   "tauri": {
     "allowlist": {
-        "all": true,
         "fs": {
-            "all": true,
-            "copyFile": true,
-            "createDir": true,
             "readDir": true,
-            "removeDir": true,
-            "removeFile": true,
-            "renameFile": true,
-            "writeFile": true,
             "scope": [
                 "**"
             ]
-        },
-        "shell": {
-        "all": true, 
-        "execute": true,
-        "sidecar": true,
-        "open": true
         },
         "protocol": {
             "all": true,
@@ -41,7 +27,9 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "hafizhaziq.dev.web-launch",
+      "category": "Utility",
+      "copyright": "© 2023 hafiz haziq",
       "icon": [
         "icons/32x32.png",
         "icons/128x128.png",
@@ -59,7 +47,8 @@
         "resizable": true,
         "title": "webLaunch",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "center": true
       }
     ]
   }

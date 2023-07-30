@@ -1,9 +1,7 @@
 <script>
-    // import { open } from "@tauri-apps/api/dialog";
-    import { appDir } from "@tauri-apps/api/path";
+    import { open } from "@tauri-apps/api/dialog";
     import { readDir, BaseDirectory } from '@tauri-apps/api/fs';
-    import { open } from '@tauri-apps/api/shell';
-    import { tauri } from '@tauri-apps/api';
+    import { invoke } from "@tauri-apps/api/tauri";
 
     const data = [
         {
@@ -11,6 +9,12 @@
             title: 'php',
             path: 'C:/laragon/www',
             port: "80"
+        },
+        {
+            id: 2,
+            title: 'java (jsp)',
+            path: 'C:/Program Files/Apache Software Foundation/Tomcat 8.5/webapps',
+            port: "8083"
         }
     ];
 
@@ -47,20 +51,23 @@
                 webServer.entries = entries;
             }
         }
-
-        // console.log(webServers);
         return webServers;
     }
 
     async function openInFileExplorer(path = null) {
-        // path = path.replace(/\//g, "\\");
-        path = "C:\\laragon\\www\\portfolio";
-        console.log(path);
-        await tauri.invoke('show_in_folder', {path});
+        if (path) {
+            await invoke('show_in_folder', {path});   
+        } 
+    }
+
+    async function openInCodeEditor(path = null) {
+        if (path) {
+            await invoke('show_in_code_editor', {path});   
+        } 
     }
 </script>
 
-<main class="min-h-screen w-full flex h-[100vh]">
+<main class="min-h-screen w-full h-[100vh]">
     <div id="content" class="flex h-full flex-col w-full">
         <div class="grow bg-gray-100 px-6 divide-y-2 divide-gray-500">
             {#await getProjects()}
@@ -68,21 +75,31 @@
             {:then items}
                 {#each items as item}
                     <article class="space-y-2 py-5">
-                        <header class="text-xl font-bold">{item.title}</header>
+                        <header class="flex gap-2 items-center">
+                            <div class="text-xl font-bold">{item.title}</div>
+                            <button>
+                                <i class="fas fa-edit text-gray-800 hover:text-gray-600"></i>
+                            </button>
+                            <button>
+                                <i class="fas fa-trash text-gray-800 hover:text-gray-600"></i>
+                            </button>
+                        </header>
             
-                        <div class="grid grid-cols-6 gap-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-3  lg:grid-cols-4 xl:grid-cols-5 gap-4">
                             {#each item.entries as entry}
                                 <article class="bg-white rounded-md shadow space-y-3">
-                                    <header class="px-4 pt-4">
-                                        <a href="{'http://localhost:' + item.port + '/' + entry.name}" target="_blank" class="hover:underline hover:text-blue-600">{entry.name}</a>
+                                    <header class="px-4 pt-4 truncate">
+                                        <a href="{ `http://localhost:${item.port}/${entry.name}` }" target="_blank" class="hover:underline hover:text-blue-600">{entry.name}</a>                                        
                                     </header>
                                     <hr>
                                     <footer class="grid grid-cols-2 px-4 pb-2">
                                         <div class="text-center">
-                                            <i class="fas fa-code cursor-pointer text-xl text-gray-800 hover:text-gray-600" title="open in code editor"></i>
+                                            <button on:click={ () => openInCodeEditor(entry.path) }>
+                                                <i class="fas fa-code text-xl text-gray-800 hover:text-gray-600" title="open in code editor"></i>
+                                            </button>
                                         </div>
                                         <div class="text-center">
-                                            <button on:click={ () => openInFileExplorer(entry.path)}>
+                                            <button on:click={ () => openInFileExplorer(entry.path) }>
                                                 <i class="fas fa-folder text-xl text-gray-800 hover:text-gray-600" title="open in file explorer"></i>
                                             </button>
                                         </div>
@@ -95,9 +112,6 @@
             {:catch error}
                 <p style="color: red">{error.message}</p>
             {/await}
-                
-
-           
         </div>
     </div>
 </main>
