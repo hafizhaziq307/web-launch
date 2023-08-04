@@ -13,29 +13,14 @@
   "tauri": {
     "allowlist": {
         "fs": {
-            "all": true,
-            "readDir": true,
+            "readFile": true,
             "writeFile": true,
-            "scope": [
-                "**",
-                "$APPDATA/**",
-                "$APPDATA/*",
-                "$APPDATA/",
-                "$APPDATA"
-            ]
+            "readDir": true,
+            "exists": true,
+            "scope": ["**"]
         },
         "dialog": {
-            "all": true,
-            "ask": true,
-            "confirm": true,
-            "message": true,
-            "open": true,
-            "save": true
-        },
-        "protocol": {
-            "all": true,
-            "asset": true,
-            "assetScope": ["*"]
+            "open": true
         }
     },
     "bundle": {

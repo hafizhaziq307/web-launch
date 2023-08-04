@@ -1,12 +1,23 @@
 <script>
     import { open } from "@tauri-apps/api/dialog";
-    import { readDir, BaseDirectory, writeTextFile, readTextFile } from '@tauri-apps/api/fs';
-    import { invoke } from "@tauri-apps/api/tauri";
+    import { exists, readDir, BaseDirectory, writeTextFile, readTextFile } from '@tauri-apps/api/fs';
+    import { onMount } from 'svelte';
+    import OpenInCodeEditor from './lib/buttons/OpenInCodeEditor.svelte';
+    import OpenInFileExplorer from './lib/buttons/OpenInFileExplorer.svelte';
+    import CreateModal from './lib/modals/CreateModal.svelte';
+    import DeleteConfirm from './lib/modals/DeleteConfirm.svelte';
+    import EditModal from './lib/modals/EditModal.svelte';
+    import Error from './lib/Error.svelte';
 
-    let promise = displayData();
-    let editModalOpen = false;
-    let createModalOpen = false;
-    let deleteConfirmOpen = false;
+    const fileSaveConfig = {
+        filename: "data.json",
+        dir: BaseDirectory.AppLocalData,
+        // dir: BaseDirectory.Desktop
+    };
+
+    let isEditModalOpen = false;
+    let isCreateModalOpen = false;
+    let isDeleteConfirmOpen = false;
     let selectedRecord = {
         id: null,
         title: null,
@@ -20,6 +31,20 @@
         port: null
     };
 
+    let promise = displayData();
+
+    // create savefile if not exists yet
+    onMount(async () => {
+        const isExists = await exists(fileSaveConfig.filename, { dir: fileSaveConfig.dir });
+        if (!isExists) {
+            await writeTextFile(fileSaveConfig.filename, "[]", {dir: fileSaveConfig.dir });
+            promise = displayData();
+        } 
+    });
+
+
+    
+
     async function openDialog(e) {
         let directory = await open({
             directory: true,
@@ -32,7 +57,7 @@
     }
 
     async function readData() {
-        const strContents = await readTextFile('example.json', { dir: BaseDirectory.Desktop });
+        const strContents = await readTextFile(fileSaveConfig.filename, { dir: fileSaveConfig.dir });
         return JSON.parse(strContents);
     }
 
@@ -53,7 +78,7 @@
                 path: updatedRecord.path,
                 port: updatedRecord.port
             };
-            await writeTextFile("example.json", JSON.stringify(data), {dir: BaseDirectory.Desktop });
+            await writeTextFile(fileSaveConfig.filename, JSON.stringify(data), {dir: fileSaveConfig.dir });
 
             closeEditModal();
             promise = displayData();
@@ -71,7 +96,7 @@
         let data = Array.from(await readData());
         data.push(createdRecord);
 
-        await writeTextFile("example.json", JSON.stringify(data), {dir: BaseDirectory.Desktop });
+        await writeTextFile(fileSaveConfig.filename, JSON.stringify(data), {dir: fileSaveConfig.dir });
 
         closeCreateModal();
         promise = displayData();
@@ -84,7 +109,7 @@
         if (record) {
             data = data.filter(obj => obj.id !== record.id);
 
-            await writeTextFile("example.json", JSON.stringify(data), {dir: BaseDirectory.Desktop });
+            await writeTextFile(fileSaveConfig.filename, JSON.stringify(data), {dir: fileSaveConfig.dir });
 
             closeCreateModal();
             promise = displayData();
@@ -97,7 +122,7 @@
         for (let i = 0; i < webServers.length; i++) {
             const webServer = webServers[i];
             
-            let entries =  await readDir(webServer.path, { dir: BaseDirectory.Desktop, recursive: false });
+            let entries =  await readDir(webServer.path, { dir: fileSaveConfig.dir, recursive: false });
 
             if (entries) {
                 entries = entries.filter(obj => 'children' in obj);
@@ -113,18 +138,6 @@
         return webServers;
     }
 
-    async function openInFileExplorer(path = null) {
-        if (path) {
-            await invoke('show_in_folder', {path});   
-        } 
-    }
-
-    async function openInCodeEditor(path = null) {
-        if (path) {
-            await invoke('show_in_code_editor', {path});   
-        } 
-    }
-
     async function openEditModal(id) {
         const data = Array.from(await readData());
         const record = data.find(obj => obj.id == id); 
@@ -136,7 +149,7 @@
                 path: record.path,
                 port: record.port
             };
-            editModalOpen = true;
+            isEditModalOpen = true;
         } 
     }
 
@@ -147,15 +160,15 @@
             path: null,
             port: null
         };
-        editModalOpen = false;
+        isEditModalOpen = false;
     }
 
     function openCreateModal() {
-        createModalOpen = true;
+        isCreateModalOpen = true;
     }
 
     function closeCreateModal() {
-        createModalOpen = false;
+        isCreateModalOpen = false;
     }
 
     async function openDeleteConfirm(id) {
@@ -169,7 +182,7 @@
                 path: record.path,
                 port: record.port
             };
-            deleteConfirmOpen = true;
+            isDeleteConfirmOpen = true;
         } 
     }
 
@@ -180,7 +193,7 @@
             path: null,
             port: null
         };
-        deleteConfirmOpen = false;
+        isDeleteConfirmOpen = false;
     }
 </script>
 
@@ -207,14 +220,10 @@
                                     <hr>
                                     <footer class="grid grid-cols-2 px-4 pb-2">
                                         <div class="text-center">
-                                            <button on:click={ () => openInCodeEditor(entry.path) }>
-                                                <i class="fas fa-code text-xl text-gray-800 hover:text-gray-600" title="Open in code editor"></i>
-                                            </button>
+                                           <OpenInCodeEditor path={entry.path}/>
                                         </div>
                                         <div class="text-center">
-                                            <button on:click={ () => openInFileExplorer(entry.path) }>
-                                                <i class="fas fa-folder text-xl text-gray-800 hover:text-gray-600" title="Open in file explorer"></i>
-                                            </button>
+                                            <OpenInFileExplorer path={entry.path}/>
                                         </div>
                                     </footer>
                                 </article>
@@ -228,127 +237,14 @@
                 <button class="w-full px-4 py-2 rounded bg-green-600 hover:bg-green-500 font-medium text-white" title="Add more stuff" on:click={openCreateModal}>Add More</button>
             </div>
             {:catch error}
-                <div class="fixed inset-0 flex items-center justify-center">
-                    <div class="bg-white border border-gray-200 flex flex-col items-center justify-center px-4 md:px-8 lg:px-24 py-8 rounded-lg shadow-2xl">
-                        <div class="text-6xl md:text-7xl lg:text-9xl font-bold tracking-wider text-gray-300">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <p class="text-2xl md:text-3xl lg:text-5xl font-bold tracking-wider text-gray-500 mt-4">Error</p>
-                        <p class="text-gray-500 mt-6 py-2 border-y-2 text-center">Whoops, something went wrong on our Application.</p>
-                    </div>
-                </div>
+                <Error />
             {/await}
         </div>
     </div>
 
-    <!-- edit modal -->
-    <div class={`bg-slate-800 bg-opacity-50 flex justify-center items-center p-6 ${editModalOpen ? 'fixed inset-0' : 'hidden'}` } >
-        <!-- overlay -->
-        <div class="fixed inset-0 -z-10" on:click={closeEditModal}></div>
-        
-        <!-- modal -->
-        <div class="bg-white px-10 py-6 rounded-md max-w-xl w-full space-y-4">
-            <!-- modal header -->
-            <header class="mb-4">
-                <h1 class="text-xl font-bold text-slate-500">Edit</h1>
-            </header>
-
-            <!-- modal content -->
-            <form class="row" on:submit|preventDefault={updateData}>
-                <div class="space-y-4">
-                    <div>
-                        <label for="title" class="block text-sm font-bold ml-1 mb-1">Title</label>
-                        <input type="text" name="title" id="title" value={selectedRecord.title} autocomplete="off" on:blur={(e) => e.target.value = (e.target.value).trim()} required class="py-2 px-3 block w-full border-2 border-gray-200 rounded-md outline-none text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm" >
-                    </div>
-        
-                    <div>
-                        <label for="path" class="block text-sm font-bold ml-1 mb-1">Path</label>
-                        <input type="text" name="path" id="path" value={selectedRecord.path} autocomplete="off" on:blur={(e) => e.target.value = (e.target.value).trim()} required readonly class="py-2 px-3 block w-full border-2 border-gray-200 rounded-md outline-none text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm" on:click={openDialog}>
-                    </div>
-        
-                    <div>
-                        <label for="port" class="block text-sm font-bold ml-1 mb-1">Port</label>
-                        <input type="text" name="port" id="port" value={selectedRecord.port} autocomplete="off" on:blur={(e) => e.target.value = (e.target.value).trim()} required class="py-2 px-3 block w-full border-2 border-gray-200 rounded-md outline-none text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm" >
-                    </div>
-                </div>
-
-                <div class="text-right">
-                    <input type="hidden" name="id" value="{selectedRecord.id}">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 leading-snug px-4 py-2 rounded-md text-md text-white font-semibold mt-4 text-sm">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- create modal -->
-    <div class={`bg-slate-800 bg-opacity-50 flex justify-center items-center p-6 ${createModalOpen ? 'fixed inset-0' : 'hidden'}` } >
-        <!-- overlay -->
-        <div class="fixed inset-0 -z-10" on:click={closeCreateModal}></div>
-        
-        <!-- modal -->
-        <div class="bg-white px-10 py-6 rounded-md max-w-xl w-full space-y-4">
-            <!-- modal header -->
-            <header class="mb-4">
-                <h1 class="text-xl font-bold text-slate-500">Create</h1>
-            </header>
-
-            <!-- modal content -->
-            <form class="row" on:submit|preventDefault={insertData}>
-                <div class="space-y-4">
-                    <div>
-                        <label for="title" class="block text-sm font-bold ml-1 mb-1">Title</label>
-                        <input type="text" name="title" id="title" autocomplete="off" required on:blur={(e) => e.target.value = (e.target.value).trim()} class="py-2 px-3 block w-full border-2 border-gray-200 rounded-md outline-none text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm" >
-                    </div>
-        
-                    <div>
-                        <label for="path" class="block text-sm font-bold ml-1 mb-1">Path</label>
-                        <input type="text" name="path" id="path" autocomplete="off" required readonly on:blur={(e) => e.target.value = (e.target.value).trim()} class="py-2 px-3 block w-full border-2 border-gray-200 rounded-md outline-none text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm" on:click={openDialog}>
-                    </div>
-        
-                    <div>
-                        <label for="port" class="block text-sm font-bold ml-1 mb-1">Port</label>
-                        <input type="text" name="port" id="port" autocomplete="off" required on:blur={(e) => e.target.value = (e.target.value).trim()} class="py-2 px-3 block w-full border-2 border-gray-200 rounded-md outline-none text-sm focus:border-blue-500 focus:ring-blue-500 shadow-sm" >
-                    </div>
-                </div>
-
-                <div class="text-right">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 leading-snug px-4 py-2 rounded-md text-md text-white font-semibold mt-4 text-sm">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- delete confirm modal -->
-    <div class={`bg-slate-800 bg-opacity-50 flex justify-center items-center p-6 ${deleteConfirmOpen ? 'fixed inset-0' : 'hidden'}` } >
-        <!-- overlay -->
-        <div class="fixed inset-0 -z-10" on:click={closeDeleteConfirm}></div>
-        
-        <!-- modal -->
-        <div class="bg-white px-10 py-6 rounded-md max-w-xl w-full space-y-4">
-            <!-- modal header -->
-            <header>
-                <h1 class="text-xl font-bold text-slate-500">Are you sure want to delete this? </h1>
-            </header>
-
-            <!-- modal content -->
-            <table class="border-collapse border border-slate-500 w-full">
-                <tr>
-                    <td class="w-1/3 bg-slate-300 border border-slate-700 p-2 font-bold tracking-wide text-sm">Title</td>
-                    <td class="w-2/3 border border-slate-700 p-2 text-sm">{deletedRecord.title}</td>
-                </tr>
-                <tr>
-                    <td class="w-1/3 bg-slate-300 border border-slate-700 p-2 font-bold tracking-wide text-sm">Path</td>
-                    <td class="w-2/3 border border-slate-700 p-2 text-sm tracking-wide">{deletedRecord.path}</td>
-                </tr>
-                <tr>
-                    <td class="w-1/3 bg-slate-300 border border-slate-700 p-2 font-bold tracking-wide text-sm">Port</td>
-                    <td class="w-2/3 border border-slate-700 p-2 text-sm">{deletedRecord.port}</td>
-                </tr>
-            </table>
-
-            <footer class="text-right">
-                <button class="bg-red-600 hover:bg-red-500 leading-snug px-4 py-2 rounded-md text-md text-white font-semibold text-sm" on:click={() => deleteData(deletedRecord.id)}>Delete</button>
-            </footer>
-        </div>
-    </div>
+    <!-- modals -->
+    <EditModal isOpen={isEditModalOpen} closeModal={closeEditModal} updateData={updateData} selectedRecord={selectedRecord} openDialog={openDialog} />
+    <CreateModal isOpen={isCreateModalOpen} closeModal={closeCreateModal} insertData={insertData} openDialog={openDialog} />
+    <DeleteConfirm isOpen={isDeleteConfirmOpen} closeConfirm={closeDeleteConfirm} deleteData={deleteData} deletedRecord={deletedRecord} />
+    <!-- end modals -->
 </main>
