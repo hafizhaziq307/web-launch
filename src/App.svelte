@@ -6,8 +6,14 @@
     let promise = displayData();
     let editModalOpen = false;
     let createModalOpen = false;
-    let deleteModalOpen = false;
+    let deleteConfirmOpen = false;
     let selectedRecord = {
+        id: null,
+        title: null,
+        path: null,
+        port: null
+    };
+    let deletedRecord = {
         id: null,
         title: null,
         path: null,
@@ -144,12 +150,37 @@
         editModalOpen = false;
     }
 
-    async function openCreateModal() {
+    function openCreateModal() {
         createModalOpen = true;
     }
 
     function closeCreateModal() {
         createModalOpen = false;
+    }
+
+    async function openDeleteConfirm(id) {
+        const data = Array.from(await readData());
+        const record = data.find(obj => obj.id == id); 
+        
+        if (record) {
+            deletedRecord = {
+                id: record.id,
+                title: record.title,
+                path: record.path,
+                port: record.port
+            };
+            deleteConfirmOpen = true;
+        } 
+    }
+
+    function closeDeleteConfirm() {
+        deletedRecord = {
+            id: null,
+            title: null,
+            path: null,
+            port: null
+        };
+        deleteConfirmOpen = false;
     }
 </script>
 
@@ -164,7 +195,7 @@
                     <article class="space-y-2 py-5">
                         <header class="flex gap-2 justify-between items-center">
                             <button on:click={() => openEditModal(item.id)} class="text-2xl font-bold hover:text-red-600" title="Edit">{item.title}</button>
-                            <button class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-500 text-sm font-medium leading-snug" title="Remove" on:click={() => deleteData(item.id)}>Remove</button>
+                            <button class="px-4 py-2 rounded text-white bg-red-600 hover:bg-red-500 text-sm font-medium leading-snug" title="Remove" on:click={() => openDeleteConfirm(item.id)}>Remove</button>
                         </header>
             
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -284,6 +315,40 @@
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 leading-snug px-4 py-2 rounded-md text-md text-white font-semibold mt-4 text-sm">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- delete confirm modal -->
+    <div class={`bg-slate-800 bg-opacity-50 flex justify-center items-center p-6 ${deleteConfirmOpen ? 'fixed inset-0' : 'hidden'}` } >
+        <!-- overlay -->
+        <div class="fixed inset-0 -z-10" on:click={closeDeleteConfirm}></div>
+        
+        <!-- modal -->
+        <div class="bg-white px-10 py-6 rounded-md max-w-xl w-full space-y-4">
+            <!-- modal header -->
+            <header>
+                <h1 class="text-xl font-bold text-slate-500">Are you sure want to delete this? </h1>
+            </header>
+
+            <!-- modal content -->
+            <table class="border-collapse border border-slate-500 w-full">
+                <tr>
+                    <td class="w-1/3 bg-slate-300 border border-slate-700 p-2 font-bold tracking-wide text-sm">Title</td>
+                    <td class="w-2/3 border border-slate-700 p-2 text-sm">{deletedRecord.title}</td>
+                </tr>
+                <tr>
+                    <td class="w-1/3 bg-slate-300 border border-slate-700 p-2 font-bold tracking-wide text-sm">Path</td>
+                    <td class="w-2/3 border border-slate-700 p-2 text-sm tracking-wide">{deletedRecord.path}</td>
+                </tr>
+                <tr>
+                    <td class="w-1/3 bg-slate-300 border border-slate-700 p-2 font-bold tracking-wide text-sm">Port</td>
+                    <td class="w-2/3 border border-slate-700 p-2 text-sm">{deletedRecord.port}</td>
+                </tr>
+            </table>
+
+            <footer class="text-right">
+                <button class="bg-red-600 hover:bg-red-500 leading-snug px-4 py-2 rounded-md text-md text-white font-semibold text-sm" on:click={() => deleteData(deletedRecord.id)}>Delete</button>
+            </footer>
         </div>
     </div>
 </main>
