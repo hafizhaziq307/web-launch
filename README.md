@@ -6,7 +6,8 @@ Quick starter for web projects
 
 ## Stack
 It is created using those amazing technologies:
-- [Svelte](https://reactjs.org/)
+- 
+- [Svelte](https://svelte.dev/)
 - [Tailwind](https://tailwindcss.com/)
 - [Tauri](https://tauri.studio/)
 - And many others!
