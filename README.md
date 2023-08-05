@@ -1,6 +1,7 @@
 # webLaunch
 Quick starter for web projects
 
+<img src="./res/output.png" alt="music_player" width="70%" height="70%" >
 
 ---
 
