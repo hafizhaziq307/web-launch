@@ -1,4 +1,4 @@
-# webLaunch
+# web-launch
 Quick starter for web projects
 
 <img src="./res/output.png" alt="web_launch" width="70%" height="70%" >
@@ -16,6 +16,6 @@ It is created using those amazing technologies:
 ---
 
 ## License
->You can check out the full license [here](https://github.com/hafizhaziq307/webLaunch/blob/main/LICENSE)
+>You can check out the full license [here](https://github.com/hafizhaziq307/web-launch/blob/main/LICENSE)
 
 This project is licensed under the terms of the **MIT** license.
